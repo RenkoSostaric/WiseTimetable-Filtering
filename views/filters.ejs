@@ -1,0 +1,35 @@
+<section id="global-groups">
+    <h2>Globalne skupine</h2>
+    <div class="checkbox-area">
+        <% globalGroups.forEach(group=> { %>
+            <div class="checkbox-pair">
+                <input type="checkbox" name="" id="">
+                <label for="">
+                    <%= group %>
+                </label>
+            </div>
+            <% }); %>
+    </div>
+</section>
+<section id="subject-groups">
+    <h2>Skupine po predmetu</h2>
+    <% for (const subject in subjectGroups) { %>
+        <label for="">
+            <%= subject %>
+        </label>
+        <select name="" id="">
+            <% subjectGroups[subject].forEach(group=> { %>
+                <option value="">
+                    <%= group %>
+                </option>
+                <% }); %>
+        </select>
+        <br>
+        <% } %>
+</section>
+<section id="controls">
+    <div class="btn-url-pair">
+        <button>Ustvari link</button>
+        <input type="url" name="" id="personal-link">
+    </div>
+</section>

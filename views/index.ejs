@@ -1,0 +1,49 @@
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WiseTT extractor</title>
+    <link rel="stylesheet" href="styles/style.css">
+    <script>
+        document.addEventListener("DOMContentLoaded", function (event) {
+            document.getElementById('process').addEventListener('click', function () {
+                const url = document.getElementById('timeTableURL').value;
+                fetch(`/get-data?url=${encodeURIComponent(url)}`)
+                    .then(response => response.text())
+                    .then(html => {
+                        document.querySelector('.form-container').innerHTML += html;
+                        document.getElementById('timeTableURL').value = url;
+                    });
+            });
+        });
+    </script>
+</head>
+
+<body>
+    <div class="form-container">
+        <section id="title">
+            <h1>WISE-TT CUSTOM FILTERS</h1>
+        </section>
+        <section id="link">
+            <h2>Urnik link</h2>
+            <div class="btn-url-pair">
+                <input type="url" name="timetableURL" id="timeTableURL">
+                <button id="process">Procesiraj</button>
+            </div>
+        </section>
+        <section id="loading">
+            <div class="throbber-container">
+                <div class="throbber" id="circle-1"></div>
+                <div class="throbber" id="circle-2"></div>
+            </div>
+            <p>Procesiranje
+                <span class="dot" id="dot1">.</span>
+                <span class="dot" id="dot2">.</span>
+                <span class="dot" id="dot3">.</span>
+            </p>
+        </section>
+    </div>
+</body>
+
+</html>
