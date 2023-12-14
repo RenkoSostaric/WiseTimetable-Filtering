@@ -5,16 +5,35 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>WiseTT extractor</title>
     <link rel="stylesheet" href="styles/style.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function (event) {
-            document.getElementById('process').addEventListener('click', function () {
-                const url = document.getElementById('timeTableURL').value;
-                fetch(`/get-data?url=${encodeURIComponent(url)}`)
-                    .then(response => response.text())
-                    .then(html => {
-                        document.querySelector('.form-container').innerHTML += html;
-                        document.getElementById('timeTableURL').value = url;
-                    });
+        $(document).ready(function() {
+            function displayLoading() {
+                $('section#loading').css('display', 'flex');
+                $('div.throbber-container').css('display', 'flex');
+                $('div.throbber').css('display', 'block');
+                $('div.throbber').css('display', 'block');
+                $('p').css('display', 'block');
+                $('span.dot').css('display', 'inline-block');
+            }
+
+            function hideLoading() {
+                $('section#loading').css('display', 'none');
+                $('div.throbber-container').css('display', 'none');
+                $('div.throbber').css('display', 'none');
+                $('div.throbber').css('display', 'none');
+                $('p').css('display', 'none');
+                $('span.dot').css('display', 'none');
+            }
+
+            $('#process').click(function() {
+                displayLoading();
+                const url = $('#timeTableURL').val();
+                $.get(`/get-data?url=${encodeURIComponent(url)}`, function(data) {
+                    hideLoading();
+                    $('.form-container').append(data);
+                    $('#timeTableURL').val(url);
+                });
             });
         });
     </script>
