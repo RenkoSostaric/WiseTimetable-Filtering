@@ -177,6 +177,14 @@ button {
     min-width: max-content;
 }
 
+button:hover {
+    background-color: #b02ce6;
+}
+
+button:active {
+    background-color: #8b25ba;
+}
+
 .btn-url-pair {
     display: flex;
     justify-content: flex-start;
