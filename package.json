@@ -15,7 +15,8 @@
     "fs": "^0.0.1-security",
     "path": "^0.12.7",
     "puppeteer": "^21.3.8",
-    "puppeteer-utilz": "^4.0.8"
+    "puppeteer-utilz": "^4.0.8",
+    "uuidv4": "^6.2.13"
   },
   "devDependencies": {
     "tailwindcss": "^3.3.5"
