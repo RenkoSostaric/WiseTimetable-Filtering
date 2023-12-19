@@ -6,37 +6,7 @@
     <title>WiseTT extractor</title>
     <link rel="stylesheet" href="styles/style.css">
     <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.5.1/jquery.min.js"></script>
-    <script>
-        $(document).ready(function() {
-            function displayLoading() {
-                $('section#loading').css('display', 'flex');
-                $('div.throbber-container').css('display', 'flex');
-                $('div.throbber').css('display', 'block');
-                $('div.throbber').css('display', 'block');
-                $('p').css('display', 'block');
-                $('span.dot').css('display', 'inline-block');
-            }
-
-            function hideLoading() {
-                $('section#loading').css('display', 'none');
-                $('div.throbber-container').css('display', 'none');
-                $('div.throbber').css('display', 'none');
-                $('div.throbber').css('display', 'none');
-                $('p').css('display', 'none');
-                $('span.dot').css('display', 'none');
-            }
-
-            $('#process').click(function() {
-                displayLoading();
-                const url = $('#timeTableURL').val();
-                $.get(`/get-data?url=${encodeURIComponent(url)}`, function(data) {
-                    hideLoading();
-                    $('.form-container').append(data);
-                    $('#timeTableURL').val(url);
-                });
-            });
-        });
-    </script>
+    <script src="scripts/script.js"></script>
 </head>
 
 <body>
