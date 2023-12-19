@@ -1,39 +1,57 @@
 const express = require('express');
 const app = express();
 const ejs = require('ejs');
-const puppeteer = require('puppeteer');
 const path = require('path');
 const fs = require('fs');
-const { get } = require('http');
+const puppeteer = require('puppeteer');
+const uuidv4 = require('uuid').v4;
 
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
+app.use('/ical', express.static(path.join(__dirname, 'filters', 'ical')));
+app.use(express.json());
+
 app.get('/', (req, res) => {
   res.render('index');
 });
 
+let events = [];
+
 app.get('/get-data', async (req, res) => {
   const url = req.query.url;
   const filePath = await getNewIcalFile(url);
-  const events = parseICalFile(filePath);
+  events = parseICalFile(filePath);
   const globalGroups = getGlobalGroups(events);
   const subjectGroups = getSubjectGroups(events);
+  fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
   res.render('filters', { globalGroups, subjectGroups });
 });
+
+app.post('/filter-data', async (req, res) => {
+  const selectedGlobalGroups = new Set(req.body.globalGroups);
+  const selectedSubjectGroups = req.body.subjectGroups;
+  const filteredEvents = filterIcalEvents(events, selectedGlobalGroups, selectedSubjectGroups);
+  const uniqueId = uuidv4();
+  const destinationFilePath = path.join(__dirname, 'filters', 'ical', `${uniqueId}.ics`);
+  generateNewIcalFile(filteredEvents, destinationFilePath);
+  appendFilters(uniqueId, selectedGlobalGroups, selectedSubjectGroups);
+  res.json({ success: true, id: uniqueId });
+});
+
 app.listen(3000, () => {
   console.log('Server running on port 3000');
 });
 
 async function getNewIcalFile(url) {
-  const filePath = path.join(__dirname, 'temp', 'calendar.ics');
+  const folderPath = getNewFolderPath();
+  fs.mkdirSync(folderPath);
+  const filePath = path.join(folderPath, 'calendar.ics');
   const browser = await puppeteer.launch({ headless: 'new' });
   const page = await browser.newPage();
   const client = await page.target().createCDPSession()
-  if (fs.existsSync(filePath))
-    fs.unlinkSync(filePath);
   await client.send('Page.setDownloadBehavior', {
     behavior: 'allow',
-    downloadPath: path.join(__dirname, 'temp'),
+    downloadPath: folderPath,
   })
   await page.goto(url, { waitUntil: 'networkidle0' });
   const btnId = String(await page.evaluate(() => {
@@ -50,6 +68,13 @@ async function getNewIcalFile(url) {
   }
   browser.close();
   return String(filePath);
+}
+
+function getNewFolderPath() {
+  let i = 1;
+  while (fs.existsSync(path.join(__dirname, 'temp', `cal_${i}`)))
+    i++;
+  return path.join(__dirname, 'temp', `cal_${i}`);
 }
 
 function getGlobalGroups(events) {
@@ -95,4 +120,42 @@ function parseICalFile(filePath) {
     });
   }
   return events;
+}
+
+function filterIcalEvents(events, filteredGlobalGroups, filteredSubjectGroups) {
+  let filteredEvents = events.filter(event => {
+    if (filteredGlobalGroups.has(event.group))
+      return true;
+    if (filteredSubjectGroups[event.subject] && filteredSubjectGroups[event.subject] == event.group)
+      return true;
+    return false;
+  });
+  return filteredEvents;
+}
+
+function generateNewIcalFile(events, filePath) {
+  let icalString = '';
+  icalString += "BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPROID:WTT FILTERING\r\n"
+  for (let event of events) {
+    icalString += `BEGIN:VEVENT\r\nUID:${event.UID}\r\nLOCATION:${event.LOCATION}\r\nDTSTART:${event.DTSTART}\r\nDTSTAMP:${event.DTSTAMP}\r\nDTEND:${event.DTEND}\r\nSUMMARY:${event.SUMMARY}\r\nDESCRIPTION:${event.DESCRIPTION}\r\nEND:VEVENT\r\n`;
+  }
+  icalString += "END:VCALENDAR\r\n";
+  fs.writeFileSync(filePath, icalString);
+}
+
+function appendFilters(uniqueId, selectedGlobalGroups, selectedSubjectGroups) {
+  const filters = {
+    id: uniqueId,
+    globalGroups: Array.from(selectedGlobalGroups),
+    subjectGroups: selectedSubjectGroups
+  };
+  const mainFilePath = path.join(__dirname, 'filters', 'main.json');
+  let mainFile;
+  try {
+    mainFile = JSON.parse(fs.readFileSync(mainFilePath));
+  } catch (error) {
+    mainFile = [];
+  }
+  mainFile.push(filters);
+  fs.writeFileSync(mainFilePath, JSON.stringify(mainFile));
 }
