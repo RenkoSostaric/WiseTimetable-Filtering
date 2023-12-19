@@ -4,9 +4,7 @@
         <% globalGroups.forEach(group=> { %>
             <div class="checkbox-pair">
                 <input type="checkbox" name="" id="">
-                <label for="">
-                    <%= group %>
-                </label>
+                <label for=""><%= group %></label>
             </div>
             <% }); %>
     </div>
@@ -14,22 +12,16 @@
 <section id="subject-groups">
     <h2>Skupine po predmetu</h2>
     <% for (const subject in subjectGroups) { %>
-        <label for="">
-            <%= subject %>
-        </label>
+        <label for=""><%= subject %></label>
         <select name="" id="">
             <% subjectGroups[subject].forEach(group=> { %>
-                <option value="">
-                    <%= group %>
-                </option>
-                <% }); %>
+                <option value=""><%= group %></option><% }); %>
         </select>
-        <br>
-        <% } %>
+        <br><% } %>
 </section>
 <section id="controls">
     <div class="btn-url-pair">
-        <button>Ustvari link</button>
+        <button id="createLink">Ustvari link</button>
         <input type="url" name="" id="personal-link">
     </div>
 </section>
