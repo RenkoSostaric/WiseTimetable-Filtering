@@ -5,7 +5,13 @@ const path = require('path');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 const uuidv4 = require('uuid').v4;
+const session = require('express-session');
 
+app.use(session({
+  secret: uuidv4(),
+  resave: false,
+  saveUninitialized: true
+}));
 app.set('view engine', 'ejs');
 app.use(express.static('public'));
 app.use('/ical', express.static(path.join(__dirname, 'filters', 'ical')));
@@ -15,26 +21,24 @@ app.get('/', (req, res) => {
   res.render('index');
 });
 
-let events = [];
-
 app.get('/get-data', async (req, res) => {
-  const url = req.query.url;
-  const filePath = await getNewIcalFile(url);
-  events = parseICalFile(filePath);
-  const globalGroups = getGlobalGroups(events);
-  const subjectGroups = getSubjectGroups(events);
-  fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
+  req.session.url = req.query.url;
+  const filePath = await getNewIcalFile(req.session.url);
+  req.session.events = parseICalFile(filePath);
+  const globalGroups = getGlobalGroups(req.session.events);
+  const subjectGroups = getSubjectGroups(req.session.events);
   res.render('filters', { globalGroups, subjectGroups });
 });
 
 app.post('/filter-data', async (req, res) => {
   const selectedGlobalGroups = new Set(req.body.globalGroups);
   const selectedSubjectGroups = req.body.subjectGroups;
-  const filteredEvents = filterIcalEvents(events, selectedGlobalGroups, selectedSubjectGroups);
+  const filteredEvents = filterIcalEvents(req.session.events, selectedGlobalGroups, selectedSubjectGroups);
   const uniqueId = uuidv4();
   const destinationFilePath = path.join(__dirname, 'filters', 'ical', `${uniqueId}.ics`);
   generateNewIcalFile(filteredEvents, destinationFilePath);
-  appendFilters(uniqueId, selectedGlobalGroups, selectedSubjectGroups);
+  appendFilters(uniqueId, req.session.url, selectedGlobalGroups, selectedSubjectGroups);
+  req.session.destroy();
   res.json({ success: true, id: uniqueId });
 });
 
@@ -119,6 +123,7 @@ function parseICalFile(filePath) {
       group: match[9]
     });
   }
+  fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
   return events;
 }
 
@@ -143,9 +148,11 @@ function generateNewIcalFile(events, filePath) {
   fs.writeFileSync(filePath, icalString);
 }
 
-function appendFilters(uniqueId, selectedGlobalGroups, selectedSubjectGroups) {
+function appendFilters(uniqueId, wiseLink, selectedGlobalGroups, selectedSubjectGroups) {
   const filters = {
     id: uniqueId,
+    date: new Date(),
+    wiseLink: wiseLink,
     globalGroups: Array.from(selectedGlobalGroups),
     subjectGroups: selectedSubjectGroups
   };
@@ -158,4 +165,34 @@ function appendFilters(uniqueId, selectedGlobalGroups, selectedSubjectGroups) {
   }
   mainFile.push(filters);
   fs.writeFileSync(mainFilePath, JSON.stringify(mainFile));
+}
+
+async function refreshIcals() {
+  console.time('refreshIcals');
+  const filtersFilePath = path.join(__dirname, 'filters', 'main.json');
+  let filtersJSON;
+  try {
+    filtersJSON = JSON.parse(fs.readFileSync(filtersFilePath));
+  } catch (error) {
+    filtersJSON = [];
+  }
+  const batchSize = 10;
+  for (let i = 0; i < filtersJSON.length; i += batchSize) {
+    const batch = filtersJSON.slice(i, i + batchSize);
+    const downloadPromises = batch.map(filter => getNewIcalFile(filter.wiseLink));
+    const filepaths = await Promise.all(downloadPromises);
+
+    for (let j = 0; j < batch.length; j++) {
+      const filter = batch[j];
+      const filePath = filepaths[j];
+      const events = parseICalFile(filePath);
+      const selectedGlobalGroups = new Set(filter.globalGroups);
+      const selectedSubjectGroups = filter.subjectGroups;
+      const filteredEvents = filterIcalEvents(events, selectedGlobalGroups, selectedSubjectGroups);
+      const destinationFilePath = path.join(__dirname, 'filters', 'ical', `${filter.id}.ics`);
+      generateNewIcalFile(filteredEvents, destinationFilePath);
+    }
+  }
+
+  console.timeEnd('refreshIcals');
 }
