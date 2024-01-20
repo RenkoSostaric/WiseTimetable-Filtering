@@ -33,7 +33,6 @@ body {
     flex-direction: column;
     justify-content: flex-start;
     align-items: center;
-    gap: 0.75rem;
     backdrop-filter: blur(7px) saturate(150%);
     -webkit-backdrop-filter: blur(7px) saturate(150%);
     background-color: rgba(200, 200, 200, 0.3);
@@ -57,7 +56,7 @@ h1 {
     font-size: 2rem;
     font-weight: 700;
     text-align: center;
-    margin: 0.25rem;
+    margin: 0.75rem;
     color: #f3f3f3;
 }
 
@@ -274,4 +273,22 @@ section#loading {
 
 section#loading * {
     display: none;
+}
+
+.edit-link {
+    margin: 0.25rem 0 -0.25rem 0;
+    font-size: 0.85rem;
+}
+
+a {
+    color: #dadada;
+    text-decoration: underline;
+}
+
+a:hover {
+    color: #c9aec6;
+}
+
+a:active {
+    color: #a880a5;
 }
