@@ -82,32 +82,32 @@ function getNewFolderPath() {
 }
 
 function getGlobalGroups(events) {
-  let globalGroups = new Set(events.map(event => event.group).sort());
+  let globalGroups = new Set([].concat(...events.map(event => event.groups)).sort());
   console.log(globalGroups);
   return globalGroups;
 }
 
 function getSubjectGroups(events) {
-  let subjectGroupPairs = events.map(event => [event.subject, event.group]);
-  let subjectGroups = subjectGroupPairs.reduce((accumulator, [key, value]) => {
-    if (accumulator[key]) {
-      if (!accumulator[key].includes(value))
-        accumulator[key].push(value);
-    } else {
-      accumulator[key] = [value];
+    let subjectGroupPairs = events.flatMap(event => event.groups.map(group => [event.subject, group]));
+    let subjectGroups = subjectGroupPairs.reduce((accumulator, [key, value]) => {
+        if (accumulator[key]) {
+            if (!accumulator[key].includes(value))
+                accumulator[key].push(value);
+        } else {
+            accumulator[key] = [value];
+        }
+        return accumulator;
+    }, {});
+    for (let key in subjectGroups) {
+        subjectGroups[key].sort();
     }
-    return accumulator;
-  }, {});
-  for (let key in subjectGroups) {
-    subjectGroups[key].sort();
-  }
-  console.log(subjectGroups);
-  return subjectGroups;
+    console.log(subjectGroups);
+    return subjectGroups;
 }
 
 function parseICalFile(filePath) {
   const icalString = fs.readFileSync(filePath, 'utf8');
-  const regex = /BEGIN:VEVENT\r\nUID:(.+)\r\nLOCATION:(.+)\r\nDTSTART:(.+)\r\nDTSTAMP:(.+)\r\nDTEND:(.+)\r\nSUMMARY:(.+)\r\nDESCRIPTION:((.+?)(?:,.+){2,3}, (.+))\r\nEND:VEVENT\r\n/g;
+  const regex = /BEGIN:VEVENT\r\nUID:(.+)\r\nLOCATION:(.+)\r\nDTSTART:(.+)\r\nDTSTAMP:(.+)\r\nDTEND:(.+)\r\nSUMMARY:(.+)\r\nDESCRIPTION:((.+?)(?:,.+?){2,3}?, (RIT.+))\r\nEND:VEVENT\r\n/g;
   let matches = icalString.matchAll(regex);
   let events = [];
   for (let match of matches) {
@@ -120,7 +120,7 @@ function parseICalFile(filePath) {
       SUMMARY: match[6],
       DESCRIPTION: match[7],
       subject: match[8],
-      group: match[9]
+      groups: match[9].split(', ')
     });
   }
   fs.rmSync(path.dirname(filePath), { recursive: true, force: true });
@@ -129,9 +129,9 @@ function parseICalFile(filePath) {
 
 function filterIcalEvents(events, filteredGlobalGroups, filteredSubjectGroups) {
   let filteredEvents = events.filter(event => {
-    if (filteredGlobalGroups.has(event.group))
+    if (event.groups.some(group => filteredGlobalGroups.has(group)))
       return true;
-    if (filteredSubjectGroups[event.subject] && filteredSubjectGroups[event.subject] == event.group)
+    if (filteredSubjectGroups[event.subject] && event.groups.some(group => filteredSubjectGroups[event.subject].includes(group)))
       return true;
     return false;
   });
