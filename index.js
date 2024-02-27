@@ -83,7 +83,6 @@ function getNewFolderPath() {
 
 function getGlobalGroups(events) {
   let globalGroups = new Set([].concat(...events.map(event => event.groups)).sort());
-  console.log(globalGroups);
   return globalGroups;
 }
 
@@ -101,7 +100,6 @@ function getSubjectGroups(events) {
     for (let key in subjectGroups) {
         subjectGroups[key].sort();
     }
-    console.log(subjectGroups);
     return subjectGroups;
 }
 
@@ -193,6 +191,5 @@ async function refreshIcals() {
       generateNewIcalFile(filteredEvents, destinationFilePath);
     }
   }
-
   console.timeEnd('refreshIcals');
 }
